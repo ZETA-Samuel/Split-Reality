@@ -8,6 +8,11 @@ width,height = 800,600
 screen = pygame.display.set_mode((width,height))
 pygame.display.set_caption('Split Reality')
 
+gravity = 1200
+jump_strength = -1000
+
+velocity_y = 0
+
 x,y = 30,30
 player = pygame.Rect(x,y,60,60)
 player_color = 'white'
@@ -18,6 +23,8 @@ dt = 0
 # Surface
 surf_rect = pygame.Rect(0,500,800,100)
 surf_color = 'green'
+
+on_ground = False
 
 running = True
 while running:
@@ -35,9 +42,18 @@ while running:
                 player_color = 'white'
                 screen_color = 'black'
                 surf_color = 'green'
+            if event.key == pygame.K_SPACE:
+                if on_ground:
+                    velocity_y = jump_strength
+                    on_ground = False
 
-    if player.bottom >= surf_rect.y and player.colliderect(surf_rect):
-        player.bottom = surf_rect.y
+    velocity_y += gravity * dt
+
+    if player.colliderect(surf_rect):
+        if velocity_y > 0 and player.bottom - velocity_y * dt <= surf_rect.top:
+            player.bottom = surf_rect.top
+            velocity_y = 0
+            on_ground = True
 
     keys = pygame.key.get_pressed()
     
@@ -47,7 +63,7 @@ while running:
     elif keys[pygame.K_d]:
         player.x += 10
 
-    player.y += 300 * dt
+    player.y += velocity_y * dt
 
     pygame.draw.rect(screen,player_color,player)
     pygame.draw.rect(screen,surf_color,surf_rect)
