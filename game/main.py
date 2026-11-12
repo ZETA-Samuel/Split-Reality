@@ -9,7 +9,8 @@ screen = pygame.display.set_mode((width,height))
 pygame.display.set_caption('Split Reality')
 
 gravity = 1200
-jump_strength = -1000
+jump_strength = -900
+move_speed = 350
 
 velocity_x = 0
 velocity_y = 0
@@ -66,57 +67,86 @@ while running:
         player_color = 'black'
         screen_color = 'white'
         surf_color = 'blue'
-        for wall in plain_walls:
-            pygame.draw.rect(screen,surf_color,wall)
-            if player.colliderect(wall):
-                if velocity_x > 0:
-                    player.right = wall.left
-                elif velocity_x < 0:
-                    player.left = wall.right
-                if velocity_y > 0:
-                    player.bottom = wall.top
-                elif velocity_y < 0:
-                    player.top = wall.bottom
+        active_walls = plain_walls
         
-    elif realm_type == 1:
+    else:
         player_color = 'white'
         screen_color = 'black'
         surf_color = 'green'
-        for wall in ruin_walls:
-            pygame.draw.rect(screen,surf_color,wall)
-            if player.colliderect(wall):
-                pass
-        
+        active_walls = ruin_walls
 
 
-    if player.x <= 0:
-        player.x = 0
-    elif player.right >= width:
-        player.right = width
-    if player.y <= 0:
-        player.y = 0
-    elif player.top >= height:
-        player.top = height
+    all_walls = active_walls + [surf_rect]
 
     velocity_y += gravity * dt
 
     if player.colliderect(surf_rect):
-        if velocity_y > 0 and player.bottom - velocity_y * dt <= surf_rect.top:
+        if velocity_y > 0 and player.bottom + velocity_y * dt >= surf_rect.top:
             player.bottom = surf_rect.top
             velocity_y = 0
             on_ground = True
 
     keys = pygame.key.get_pressed()
+
+    velocity_x = 0
     
     if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-        velocity_x -= 10
+        velocity_x = -move_speed 
 
     elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-        velocity_x += 10
+        velocity_x = move_speed
 
-    player.x += velocity_x * dt
-    player.y += velocity_y * dt
+    player.x += round(velocity_x * dt)
 
+    for wall in all_walls:
+
+        if player.colliderect(wall):
+
+            if velocity_x > 0:
+                player.right = wall.left
+
+            elif velocity_x < 0:
+                player.left = wall.right
+
+    # screen boundaries
+    if player.left < 0:
+        player.left = 0
+
+    if player.right > width:
+        player.right = width
+
+    # Y-axis collision
+    velocity_y += gravity * dt
+
+    on_ground = False
+
+    # move vertically
+    player.y += round(velocity_y * dt)
+
+    for wall in all_walls:
+        if player.colliderect(wall):
+
+            if velocity_y > 0:
+                player.bottom = wall.top
+                on_ground = True
+
+            elif velocity_y < 0:
+                player.top = wall.bottom
+
+            velocity_y = 0
+
+    if player.top < 0:
+        player.y = 0
+        velocity_y = 0
+
+    if player.bottom > height:
+        player.bottom = height
+        velocity_y = 0
+        on_ground = True
+        
+    for wall in all_walls:
+        pygame.draw.rect(screen,surf_color,wall)
+    
     pygame.draw.rect(screen,player_color,player)
     pygame.draw.rect(screen,surf_color,surf_rect)
     dt = clock.tick(60) / 1000
