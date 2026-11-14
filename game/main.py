@@ -1,6 +1,9 @@
 import pygame
 import sys
 from player import Player
+from tilemap import TileMap
+from pathlib import Path
+from camera import Camera
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -8,6 +11,12 @@ clock = pygame.time.Clock()
 width,height = 800,600
 screen = pygame.display.set_mode((width,height))
 pygame.display.set_caption('Split Reality')
+
+GAME_DIR = Path(__file__).resolve().parent
+
+tilemap = TileMap(GAME_DIR / "map.tmx")
+
+camera = Camera(width,height,tilemap.width * tilemap.zoom,tilemap.height * tilemap.zoom)
 
 player = Player(30,30)
 screen_color = 'black'
@@ -67,11 +76,13 @@ while running:
 
     all_walls = active_walls + [surf_rect]
 
-    for wall in all_walls:
-        pygame.draw.rect(screen,surf_color,wall)
+    tilemap.draw(screen,camera)
         
     player.update(dt,all_walls)
-    player.draw(screen)
+    camera.update(player, tilemap.zoom)
+    screen.fill(screen_color)
+    tilemap.draw(screen,camera)
+    player.draw(screen, camera, tilemap.zoom)
     dt = clock.tick(60) / 1000
     
     pygame.display.update()

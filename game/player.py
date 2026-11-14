@@ -8,7 +8,8 @@ class Player:
         self.frame_height = 96
 
         self.position = pygame.Vector2(x,y)
-        self.rect = pygame.Rect(x,y,self.frame_width,self.frame_height)
+        self.rect = pygame.Rect(x + 6,y + 45,20,45)
+        self.draw_position = pygame.Vector2(x,y)
 
         # physics
         self.gravity = 1200
@@ -162,8 +163,8 @@ class Player:
                 elif self.velocity.y < 0:
                     self.rect.top = wall.bottom 
 
-                self.position.y = self.rect.y
                 self.velocity.y = 0
+        self.position.y = self.rect.y
 
         if self.velocity.y >= 0:
             ground_check = self.rect.move(0,1)
@@ -173,6 +174,9 @@ class Player:
                     self.on_ground = True
                     self.velocity.y = 0
                     break
+
+        self.draw_position.x = self.rect.x - 6
+        self.draw_position.y = self.rect.y - 50
 
         # screen boundaries
         if self.rect.left < 0:
@@ -200,11 +204,18 @@ class Player:
 
         self.update_animation(dt)
 
-    def draw(self,surface):
+    def draw(self,surface, camera,zoom):
 
         image = self.animations[self.current_animation][self.frame_index]
 
         if not self.facing_right:
             image = pygame.transform.flip(image,True,False)
 
-        surface.blit(image,self.rect)
+        draw_x = self.draw_position.x * zoom - camera.x 
+        draw_y = self.draw_position.y * zoom - camera.y
+
+        image = pygame.transform.scale(image,(int(image.get_width() * zoom), int(image.get_height() * zoom)))
+
+        surface.blit(image,(round(draw_x),round(draw_y)) )
+
+        pygame.draw.rect(surface, "red", self.rect, 1)
