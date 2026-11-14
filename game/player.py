@@ -165,6 +165,15 @@ class Player:
                 self.position.y = self.rect.y
                 self.velocity.y = 0
 
+        if self.velocity.y >= 0:
+            ground_check = self.rect.move(0,1)
+
+            for wall in walls:
+                if ground_check.colliderect(wall):
+                    self.on_ground = True
+                    self.velocity.y = 0
+                    break
+
         # screen boundaries
         if self.rect.left < 0:
             self.rect.left = 0
@@ -180,14 +189,14 @@ class Player:
             self.velocity.y = 0
             self.position.y = self.rect.y
 
-        if self.on_ground:
-            self.set_animation("idle")
+        
 
-        elif self.velocity.y < 0:
+        if self.velocity.y < 0:
             self.set_animation("jump")
-
-        else:
+        elif not self.on_ground:
             self.set_animation("fall")
+        else:
+            self.set_animation("idle")
 
         self.update_animation(dt)
 

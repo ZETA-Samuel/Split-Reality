@@ -54,8 +54,8 @@ while running:
     # changing realm
     if realm_type == -1:
         player_color = 'black'
-        screen_color = 'white'
-        surf_color = 'blue'
+        screen_color = 'blue'
+        surf_color = 'pink'
         active_walls = plain_walls
         
     else:
