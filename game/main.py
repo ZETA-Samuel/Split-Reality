@@ -1,5 +1,6 @@
 import pygame
 import sys
+from player import Player
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -8,16 +9,7 @@ width,height = 800,600
 screen = pygame.display.set_mode((width,height))
 pygame.display.set_caption('Split Reality')
 
-gravity = 1200
-jump_strength = -900
-move_speed = 350
-
-velocity_x = 0
-velocity_y = 0
-
-x,y = 30,30
-player = pygame.Rect(x,y,60,60)
-player_color = 'white'
+player = Player(30,30)
 screen_color = 'black'
 
 dt = 0
@@ -44,8 +36,6 @@ ruin_walls = [
     pygame.Rect(36,76,89,98)
 ]
 
-on_ground = False
-
 running = True
 while running:
     screen.fill(screen_color)
@@ -58,9 +48,8 @@ while running:
                 realm_type *= -1
 
             if event.key == pygame.K_SPACE:
-                if on_ground:
-                    velocity_y = jump_strength
-                    on_ground = False
+                player.jump()
+
 
     # changing realm
     if realm_type == -1:
@@ -78,78 +67,13 @@ while running:
 
     all_walls = active_walls + [surf_rect]
 
-    velocity_y += gravity * dt
-
-    if player.colliderect(surf_rect):
-        if velocity_y > 0 and player.bottom + velocity_y * dt >= surf_rect.top:
-            player.bottom = surf_rect.top
-            velocity_y = 0
-            on_ground = True
-
-    keys = pygame.key.get_pressed()
-
-    velocity_x = 0
-    
-    if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-        velocity_x = -move_speed 
-
-    elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-        velocity_x = move_speed
-
-    player.x += round(velocity_x * dt)
-
-    for wall in all_walls:
-
-        if player.colliderect(wall):
-
-            if velocity_x > 0:
-                player.right = wall.left
-
-            elif velocity_x < 0:
-                player.left = wall.right
-
-    # screen boundaries
-    if player.left < 0:
-        player.left = 0
-
-    if player.right > width:
-        player.right = width
-
-    # Y-axis collision
-    velocity_y += gravity * dt
-
-    on_ground = False
-
-    # move vertically
-    player.y += round(velocity_y * dt)
-
-    for wall in all_walls:
-        if player.colliderect(wall):
-
-            if velocity_y > 0:
-                player.bottom = wall.top
-                on_ground = True
-
-            elif velocity_y < 0:
-                player.top = wall.bottom
-
-            velocity_y = 0
-
-    if player.top < 0:
-        player.y = 0
-        velocity_y = 0
-
-    if player.bottom > height:
-        player.bottom = height
-        velocity_y = 0
-        on_ground = True
-        
     for wall in all_walls:
         pygame.draw.rect(screen,surf_color,wall)
-    
-    pygame.draw.rect(screen,player_color,player)
-    pygame.draw.rect(screen,surf_color,surf_rect)
+        
+    player.update(dt,all_walls)
+    player.draw(screen)
     dt = clock.tick(60) / 1000
+    
     pygame.display.update()
 
 pygame.quit()
