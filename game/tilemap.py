@@ -13,21 +13,6 @@ class TileMap:
             "ruins": self.load_collision_layer("collision_ruins")
         }
 
-        for layer in self.tmx_data.layers:
-            if layer.name in ("collision_overworld", "collision_ruins"):
-
-                print(f"\n--- {layer.name} ---")
-
-                for obj in layer:
-                    print(
-                        "Object:", obj.name,
-                        "| Type:", obj.type,
-                        "| Position:", obj.x,obj.y,
-                        "| Width:", obj.width,
-                        "| Height:", obj.height,
-                        "| Polygon:", getattr(obj,"points",None)
-                    )
-
         self.tile_width = self.tmx_data.tilewidth
         self.tile_height = self.tmx_data.tileheight
 

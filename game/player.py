@@ -213,14 +213,18 @@ class Player:
             self.velocity.y = 0
             self.position.y = self.rect.y
 
-        
+        is_teleporting = self.current_animation in (
+            "teleport","teleport_2","teleport_3"
+        )
 
-        if self.velocity.y < 0:
-            self.set_animation("jump")
-        elif not self.on_ground:
-            self.set_animation("fall")
-        else:
-            self.set_animation("idle")
+        if self.current_animation not in ("teleport","teleport_2","teleport_3") or self.animation_finished:
+            if not self.on_ground:
+                if self.velocity.y < 0:
+                    self.set_animation("jump")
+                else:
+                    self.set_animation("fall")
+            else:
+                self.set_animation("idle")
 
         self.update_animation(dt)
 
