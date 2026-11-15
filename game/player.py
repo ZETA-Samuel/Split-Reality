@@ -7,13 +7,13 @@ class Player:
         self.frame_width = 32
         self.frame_height = 96
 
-        self.position = pygame.Vector2(x,y)
-        self.rect = pygame.Rect(x + 6,y + 45,20,45)
+        
+        self.rect = pygame.Rect(x + 10,y + 65,12,25)
         self.draw_position = pygame.Vector2(x,y)
-
+        self.position = pygame.Vector2(self.rect.x,self.rect.y)
         # physics
         self.gravity = 1200
-        self.jump_strength = -1400
+        self.jump_strength = -500
         self.move_speed = 350
 
         self.velocity = pygame.Vector2(0,0)
@@ -71,6 +71,47 @@ class Player:
             animations[name] = frames
 
         return animations
+
+    def collides_with_map(self,walls):
+
+        player_mask = pygame.mask.Mask(self.rect.size, fill=True)
+
+        for wall in walls:
+            offset = (
+                self.rect.x - wall["rect"].x,
+                self.rect.y - wall["rect"].y
+            )
+
+            if wall["mask"].overlap(player_mask,offset):
+                return True
+
+        return False
+
+    def resolve_collision(self,walls,axis):
+
+        if not self.collides_with_map(walls):
+            return
+
+        if axis == "x":
+            direction = 1 if self.velocity.x > 0 else -1
+
+            while self.collides_with_map(walls):
+                self.rect.x -= direction
+
+            self.position.x = self.rect.x
+            self.velocity.x = 0
+
+        elif axis == "y":
+            direction = 1 if self.velocity.y > 0 else -1
+
+            while self.collides_with_map(walls):
+                self.rect.y -= direction
+
+            if direction == 1:
+                self.on_ground = True
+
+            self.position.y = self.rect.y
+            self.velocity.y = 0
 
     def set_animation(self,name, loop=True, force=False):
 
@@ -132,18 +173,8 @@ class Player:
 
         self.position.x += self.velocity.x * dt
         self.rect.x = round(self.position.x)
-        
-        for wall in walls:
 
-            if self.rect.colliderect(wall):
-
-                if self.velocity.x > 0:
-                    self.rect.right = wall.left 
-
-                elif self.velocity.x < 0:
-                    self.rect.left = wall.right 
-
-                self.position.x = self.rect.x
+        self.resolve_collision(walls, "x")
 
         self.velocity.y += self.gravity * dt
 
@@ -152,40 +183,29 @@ class Player:
 
         self.on_ground = False
 
-        for wall in walls:
-
-            if self.rect.colliderect(wall):
-
-                if self.velocity.y > 0:
-                    self.rect.bottom = wall.top 
-                    self.on_ground = True
-
-                elif self.velocity.y < 0:
-                    self.rect.top = wall.bottom 
-
-                self.velocity.y = 0
-        self.position.y = self.rect.y
+        self.resolve_collision(walls, "y")
 
         if self.velocity.y >= 0:
-            ground_check = self.rect.move(0,1)
 
-            for wall in walls:
-                if ground_check.colliderect(wall):
-                    self.on_ground = True
-                    self.velocity.y = 0
-                    break
+            self.rect.y += 1
 
-        self.draw_position.x = self.rect.x - 6
-        self.draw_position.y = self.rect.y - 50
+            if self.collides_with_map(walls):
+                self.on_ground = True
+                self.velocity.y = 0
+
+            self.rect.y -= 1
+
+        self.draw_position.x = self.rect.x - 10
+        self.draw_position.y = self.rect.y - 70
 
         # screen boundaries
         if self.rect.left < 0:
             self.rect.left = 0
             self.position.x = self.rect.x
 
-        if self.rect.right > 800:
-            self.rect.right = 800
-            self.position.x = self.rect.right
+        #if self.rect.right > 800:
+        #    self.rect.right = 800
+        #    self.position.x = self.rect.right
 
 
         if self.rect.top < 0:
@@ -218,4 +238,11 @@ class Player:
 
         surface.blit(image,(round(draw_x),round(draw_y)) )
 
-        pygame.draw.rect(surface, "red", self.rect, 1)
+        hitbox = pygame.Rect(
+            round(self.rect.x * zoom - camera.x),
+            round(self.rect.y * zoom - camera.y),
+            round(self.rect.width * zoom),
+            round(self.rect.height * zoom)
+        )
+
+        pygame.draw.rect(surface, "red", hitbox ,1)
