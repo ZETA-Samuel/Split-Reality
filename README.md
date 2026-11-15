@@ -18,10 +18,10 @@ You might be wondering where to play it. Well don't worry, you can try it by thi
 **Does it work?**
 You bet it does!
 
-![menu](game\menu.png)
-![overworld](game\overworld.png)
-![ruin](game\ruin.png)
-![end_screen](game\end.png)
+![menu](game/menu.png)
+![overworld](game/overworld.png)
+![ruin](game/ruin.png)
+![end_screen](game/end.png)
 
 <h1>How to Play?</h1>
 A / D or arrow keys : Left and Right
@@ -38,4 +38,4 @@ You can copy the code and make any changes as you please.
 
 **NOTE**: All the in-game asset are made by me (cool, right?). You can use and/or modify them as you like :>
 
-
+Hpe you enjoy it <3
