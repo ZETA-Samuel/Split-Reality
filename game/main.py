@@ -1,5 +1,11 @@
+# /// script
+# dependencies = [
+#     "pygame-ce",
+#     "pytmx",
+# ]
+# ///
 import pygame
-import sys
+import asyncio
 from player import Player
 from tilemap import TileMap
 from pathlib import Path
@@ -8,6 +14,7 @@ from background import Background
 
 pygame.init()
 clock = pygame.time.Clock()
+
 
 START_POSITION = (30,30)
 END_RECT = pygame.Rect(1550,130,64,64)
@@ -23,6 +30,28 @@ screen = pygame.display.set_mode((width,height))
 pygame.display.set_caption('Split Reality')
 
 GAME_DIR = Path(__file__).resolve().parent
+
+portal_sheet = pygame.image.load(GAME_DIR/"assets"/"portal.png").convert_alpha()
+
+portal_frames = [
+    portal_sheet.subsurface((0,0,60,80)),
+    portal_sheet.subsurface((60,0,60,80))
+]
+
+portal_frames = [
+    pygame.transform.scale_by(frame,2)for frame in portal_frames
+]
+
+# Map-space portal rectangles; each spawn rests on solid ground in both realms.
+CHECKPOINTS = [
+    {"portal": pygame.Rect(12, 105, 48, 64), "spawn": (15, 59)},
+    {"portal": pygame.Rect(1350, 121, 48, 64), "spawn": (1320, 75)},
+]
+current_checkpoint = CHECKPOINTS[0]["spawn"]
+
+portal_frame = 0
+portal_timer = 0
+portal_animation_speed = 0.5
 
 tilemap = TileMap(GAME_DIR / "map.tmx")
 
@@ -81,79 +110,93 @@ def play_again():
     screen.blit(subtitle, subtitle.get_rect(center=(400,350)))
 
 running = True
-while running:
-    screen.fill(screen_color)
+async def main():
+    global dt,running,game_state,player,realm_type,teleport_index,portal_timer,portal_frame,current_checkpoint
+    while running:
+        screen.fill(screen_color)
 
-    for event in pygame.event.get():
+        for event in pygame.event.get():
 
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
 
-            if game_state == "menu":
-                if event.key == pygame.K_RETURN:
-                    player = Player(*START_POSITION)
-                    game_state = "playing"
+                if game_state == "menu":
+                    if event.key == pygame.K_RETURN:
+                        player = Player(*START_POSITION)
+                        current_checkpoint = CHECKPOINTS[0]["spawn"]
+                        game_state = "playing"
 
-            elif game_state == "ending" or game_state == "play_again":
-                if event.key == pygame.K_r:
-                    player = Player(*START_POSITION)
-                    game_state = "playing"
+                elif game_state == "ending" or game_state == "play_again":
+                    if event.key == pygame.K_r:
+                        player = Player(*START_POSITION)
+                        current_checkpoint = CHECKPOINTS[0]["spawn"]
+                        game_state = "playing"
 
-            if game_state == "playing":
-                if event.key == pygame.K_q:
-                    realm_type *= -1
-                    player.play_animation(teleport_animations[teleport_index])
+                if game_state == "playing":
+                    if event.key == pygame.K_q:
+                        realm_type *= -1
+                        player.play_animation(teleport_animations[teleport_index])
 
-                    teleport_index = (teleport_index + 1) % len(teleport_animations)
-    
-                if event.key == pygame.K_SPACE:
-                    player.jump()
+                        teleport_index = (teleport_index + 1) % len(teleport_animations)
 
-    if realm_type == 1:
-        active_walls = tilemap.collisions["overworld"]
-    else:
-        active_walls = tilemap.collisions["ruins"]
+                    if event.key == pygame.K_SPACE:
+                        player.jump()
 
-    if game_state == "menu":
-        draw_menu()
-
-    if game_state == "playing":
-
-        player.update(dt, active_walls)
-        camera.update(player, tilemap.zoom)
         if realm_type == 1:
-            background_overworld.draw(screen,camera)
+            active_walls = tilemap.collisions["overworld"]
         else:
-            background_ruins.draw(screen,camera)
-        tilemap.draw(screen,camera,realm_type)
-        player.draw(screen, camera, tilemap.zoom)
+            active_walls = tilemap.collisions["ruins"]
 
-        end_screen_rect = pygame.Rect(
-            round(END_RECT.x * tilemap.zoom - camera.x),
-            round(END_RECT.y * tilemap.zoom - camera.y),
-            round(END_RECT.width * tilemap.zoom),
-            round(END_RECT.height * tilemap.zoom)
-        )
+        if game_state == "menu":
+            draw_menu()
 
-        pygame.draw.rect(screen, "red", end_screen_rect ,2)
-        if player.rect.y >= 600:
-            game_state = "play_again"
+        if game_state == "playing":
 
-        if player.rect.colliderect(END_RECT):
-            game_state = "ending"
+            portal_timer += dt
+
+            if portal_timer >= portal_animation_speed:
+                portal_timer = 0
+                portal_frame = (portal_frame + 1) % 2
+
+            player.update(dt, active_walls)
+            if player.rect.top >= tilemap.height:
+                player = Player(*current_checkpoint)
+
+            for checkpoint in CHECKPOINTS:
+                if player.rect.colliderect(checkpoint["portal"]):
+                    current_checkpoint = checkpoint["spawn"]
+
+            camera.update(player, tilemap.zoom)
+            if realm_type == 1:
+                background_overworld.draw(screen,camera)
+            else:
+                background_ruins.draw(screen,camera)
+            tilemap.draw(screen,camera,realm_type)
+
+            for checkpoint in CHECKPOINTS:
+                portal = checkpoint["portal"]
+                screen.blit(
+                    portal_frames[portal_frame],
+                    (portal.x * tilemap.zoom - camera.x, portal.y * tilemap.zoom - camera.y),
+                )
+            player.draw(screen, camera, tilemap.zoom)
+
+            if player.rect.colliderect(END_RECT):
+                game_state = "ending"
 
 
-    if game_state == "ending":
-        draw_ending()
+        if game_state == "ending":
+            draw_ending()
 
-    if game_state == "play_again":
-        play_again()
+        if game_state == "play_again":
+            play_again()
 
 
-    dt = clock.tick(60) / 1000
+        dt = clock.tick(60) / 1000
 
-    pygame.display.update()
+        pygame.display.update()
 
-pygame.quit()
-sys.exit()
+        await asyncio.sleep(0)
+
+asyncio.run(main())

@@ -248,5 +248,3 @@ class Player:
             round(self.rect.width * zoom),
             round(self.rect.height * zoom)
         )
-
-        pygame.draw.rect(surface, "red", hitbox ,1)
